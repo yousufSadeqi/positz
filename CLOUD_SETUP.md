@@ -25,32 +25,23 @@ No Temporal for now. Scheduled posting won’t work until you turn it back on.
 
 ## 1. Vercel — frontend
 
-1. https://vercel.com → **Add New Project** → import your GitHub repo  
-2. **Root Directory:** set to `apps/frontend` (required — do not leave as `.`)  
-3. Framework Preset: **Next.js**  
-4. **Output Directory:** leave **empty** / default (do not set `.next` or `apps/frontend/.next`)  
-5. Install/Build come from `apps/frontend/vercel.json`  
-6. Add env vars from `.env.vercel.example`  
-7. Deploy  
+**Easiest (recommended for this repo): Root Directory = `.` (repo root)**  
+Root `vercel.json` builds the frontend and copies `.next` to the repo root so Vercel finds it.
 
-After first deploy you get `https://….vercel.app`.
+1. Import `yousufSadeqi/positz`  
+2. **Root Directory:** leave empty / `.`  
+3. **Output Directory:** leave **blank**  
+4. Add env vars from `.env.vercel.example`  
+5. Push latest code and deploy  
 
-**Then** set / update:
+**Alternative:** Root Directory = `apps/frontend` (then `apps/frontend/vercel.json` is used instead).
 
-```env
-FRONTEND_URL=https://YOUR.vercel.app
-MAIN_URL=https://YOUR.vercel.app
-```
+### If you see “.next was not found at /vercel/path0/.next”
 
-You still need Railway URL for `NEXT_PUBLIC_BACKEND_URL` — redeploy frontend after Railway is live.
-
-### If you see “Routes Manifest Could Not Be Found”
-
-Vercel Root Directory is wrong. Fix:
-
-1. Project → **Settings → General → Root Directory** → `apps/frontend`  
-2. **Settings → Build & Development → Output Directory** → clear it (blank)  
-3. Redeploy
+1. Output Directory must be **blank**  
+2. Root Directory = `.` (use root `vercel.json`) **or** `apps/frontend`  
+3. Make sure latest commit includes root `vercel.json` (the one that `cp -R apps/frontend/.next .next`)  
+4. Redeploy
 
 ---
 
