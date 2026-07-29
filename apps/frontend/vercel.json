@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "pnpm install",
-  "buildCommand": "NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter ./apps/frontend run build",
+  "installCommand": "cd ../.. && corepack enable && pnpm install",
+  "buildCommand": "cd ../.. && NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter ./apps/frontend run build",
   "env": {
     "IS_GENERAL": "true",
     "NX_ADD_PLUGINS": "false",
