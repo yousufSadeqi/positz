@@ -63,7 +63,7 @@ const guestUser = {
   impersonate: false,
   allowTrial: false,
   isTrailing: false,
-  streakSince: null,
+  streakSince: null as string | null,
 };
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
