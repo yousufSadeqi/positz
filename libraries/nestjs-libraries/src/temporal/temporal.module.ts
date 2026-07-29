@@ -1,11 +1,17 @@
 import { TemporalModule } from 'nestjs-temporal-core';
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import { TemporalDisabledModule } from '@gitroom/nestjs-libraries/temporal/temporal.disabled.module';
 
 export const getTemporalModule = (
   isWorkers: boolean,
   path?: string,
   activityClasses?: any[]
 ) => {
+  // Temporary: keep Temporal code, but do not connect / run workers.
+  if (process.env.DISABLE_TEMPORAL === 'true') {
+    return TemporalDisabledModule;
+  }
+
   // Queues this worker server should NOT run, comma-separated
   // (e.g. EXCLUDE_QUEUE="reddit,x,twitch"). Use it to pin a queue to a single
   // server: exclude it on every server except the one that should own it.

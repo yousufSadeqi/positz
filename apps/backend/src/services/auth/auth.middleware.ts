@@ -32,6 +32,35 @@ export class AuthMiddleware implements NestMiddleware {
   ) {}
   async use(req: Request, res: Response, next: NextFunction) {
     const auth = req.headers.auth || req.cookies.auth;
+
+    // Temporary: allow API without cookie when SKIP_AUTH=true (first activated user).
+    // Register once with SKIP_AUTH=false, then turn SKIP_AUTH back on — or add your auth later.
+    if (!auth && process.env.SKIP_AUTH === 'true') {
+      const user = await this._userService.getFirstActivatedUser();
+      if (!user) {
+        throw new HttpForbiddenException();
+      }
+      delete user.password;
+      const orgs = (
+        await this._organizationService.getOrgsByUserId(user.id)
+      ).filter((f) => !f.users[0].disabled);
+      const setOrg = orgs[0];
+      if (!setOrg) {
+        throw new HttpForbiddenException();
+      }
+      if (!setOrg.apiKey) {
+        await this._organizationService.updateApiKey(setOrg.id);
+      }
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      req.user = user;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      req.org = setOrg;
+      next();
+      return;
+    }
+
     if (!auth) {
       throw new HttpForbiddenException();
     }

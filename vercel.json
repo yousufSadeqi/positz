@@ -2,10 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build:frontend",
-  "outputDirectory": "apps/frontend/.next",
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter ./apps/frontend run build",
   "env": {
     "IS_GENERAL": "true",
-    "NX_ADD_PLUGINS": "false"
+    "NX_ADD_PLUGINS": "false",
+    "SKIP_AUTH": "true",
+    "NEXT_PUBLIC_SKIP_AUTH": "true"
+  },
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=8192",
+      "IS_GENERAL": "true",
+      "NX_ADD_PLUGINS": "false",
+      "SKIP_AUTH": "true",
+      "NEXT_PUBLIC_SKIP_AUTH": "true"
+    }
   }
 }

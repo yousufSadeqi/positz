@@ -108,6 +108,17 @@ export class UsersRepository {
     });
   }
 
+  getFirstActivatedUser() {
+    return this._user.model.user.findFirst({
+      where: {
+        activated: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+
   getUserByEmail(email: string) {
     return this._user.model.user.findFirst({
       where: {

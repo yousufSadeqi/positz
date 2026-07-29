@@ -7,6 +7,9 @@ export class TemporalRegister implements OnModuleInit {
   constructor(private _client: TemporalService) {}
 
   async onModuleInit(): Promise<void> {
+    if (process.env.DISABLE_TEMPORAL === 'true') {
+      return;
+    }
     if (process.env.TEMPORAL_TLS === 'true') {
       return;
     }

@@ -81,6 +81,13 @@ function LayoutContextInner(params: { children: ReactNode }) {
       }
 
       if (response.status === 401 || response?.headers?.get('logout')) {
+        // Public mode: do not bounce to /auth when backend is offline
+        if (
+          process.env.NEXT_PUBLIC_SKIP_AUTH === 'true' ||
+          process.env.SKIP_AUTH === 'true'
+        ) {
+          return true;
+        }
         if (!isSecured) {
           setCookie('auth', '', -10);
           setCookie('showorg', '', -10);

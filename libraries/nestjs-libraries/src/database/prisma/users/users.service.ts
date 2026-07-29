@@ -24,6 +24,10 @@ export class UsersService {
     return this._usersRepository.getUserById(id);
   }
 
+  getFirstActivatedUser() {
+    return this._usersRepository.getFirstActivatedUser();
+  }
+
   getUserWithActiveSubscriptionByEmail(email: string, excludeUserId: string) {
     return this._usersRepository.getUserWithActiveSubscriptionByEmail(
       email,

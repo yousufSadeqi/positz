@@ -1,9 +1,12 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "deploy/Dockerfile"
+builder = "NIXPACKS"
+buildCommand = "pnpm install && pnpm run prisma-generate && pnpm run build:backend"
 
 [deploy]
-healthcheckPath = "/"
-healthcheckTimeout = 300
+# Uses this fork (DISABLE_TEMPORAL / SKIP_AUTH). Not the stock GHCR image.
+startCommand = "pnpm run prisma-db-push && pnpm --filter ./apps/backend run start:prod"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+[nixpacks]
+nodejs_version = "22"

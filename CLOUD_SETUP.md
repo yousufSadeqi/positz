@@ -1,93 +1,118 @@
-# Your Postiz cloud setup checklist
+# Deploy guide — Vercel (frontend) + Railway (backend) + Neon + Redis
+# Temporal stays OFF (`DISABLE_TEMPORAL=true`)
 
-Goal: no heavy local Docker images. Neon + Upstash + Temporal Cloud hold the data/scheduler; Railway runs Postiz; Vercel is optional for the frontend later.
+## Architecture
 
-## A. Create accounts & paste into `.env`
-
-### 1. Neon (database)
-1. https://console.neon.tech → New project
-2. Copy **Connection string** (URI, include `?sslmode=require`)
-3. Paste into `DATABASE_URL`
-
-### 2. Upstash (Redis)
-1. https://console.upstash.com → Create Redis database
-2. Copy **Redis URL** (`rediss://...`)
-3. Paste into `REDIS_URL`
-
-### 3. Temporal Cloud (scheduling)
-1. https://cloud.temporal.io → create namespace
-2. Copy **Address** → `TEMPORAL_ADDRESS` (ends with `:7233`)
-3. Copy **Namespace** → `TEMPORAL_NAMESPACE`
-4. Create **API Key** → `TEMPORAL_API_KEY`
-5. Keep `TEMPORAL_TLS=true`
-
-### 4. JWT
-Already set in `.env` (`JWT_SECRET`). Do not share it.
-
----
-
-## B. Deploy on Railway (required — runs the app)
-
-1. Push this repo to **your** GitHub (fork), or connect the local folder in Railway
-2. https://railway.app → **New Project** → **Deploy from GitHub**
-3. Railway will use `deploy/Dockerfile` + `railway.toml`
-4. In the Postiz service → **Variables**, paste every filled value from `.env`
-5. **Settings → Networking → Public Networking → Port `5000`**
-6. Copy the public URL, e.g. `https://postiz-production-xxxx.up.railway.app`
-7. Update these vars (in Railway **and** in local `.env`):
-
-```env
-MAIN_URL="https://YOUR_RAILWAY_URL"
-FRONTEND_URL="https://YOUR_RAILWAY_URL"
-NEXT_PUBLIC_BACKEND_URL="https://YOUR_RAILWAY_URL/api"
+```
+Browser → Vercel (Next.js frontend, this fork)
+              ↓ NEXT_PUBLIC_BACKEND_URL
+         Railway (NestJS backend, this fork)
+              ├── Neon Postgres (DATABASE_URL)
+              └── Redis (REDIS_URL)  ← your redis.io
 ```
 
-8. Redeploy, open the Railway URL, create your account
-
-At this point Postiz is usable. **Vercel is optional.**
+No Temporal for now. Scheduled posting won’t work until you turn it back on.
 
 ---
 
-## C. Vercel (optional — frontend only)
+## 0. Before anything
 
-Only do this if you want the UI on Vercel and API on Railway.
+1. Push **this** `postiz-app` folder to **your** GitHub repo (fork/private).
+2. Paste your Neon URI into Railway vars (local `.env` still has a placeholder — that’s OK if Railway has the real value).
+3. Have your Redis `rediss://...` URL ready.
 
-1. https://vercel.com → Import the same GitHub repo
-2. Set Root to repo root (uses `vercel.json`)
-3. Env vars on Vercel (frontend needs these at build time):
+---
+
+## 1. Vercel — frontend
+
+1. https://vercel.com → **Add New Project** → import your GitHub repo  
+2. **Root Directory:** leave as repo root (`.`)  
+3. Framework: Next.js (auto)  
+4. Install / Build are in `vercel.json` already  
+5. Add env vars from `.env.vercel.example`  
+6. Deploy  
+
+After first deploy you get `https://….vercel.app`.
+
+**Then** set / update:
 
 ```env
-FRONTEND_URL=https://YOUR_VERCEL_URL
-MAIN_URL=https://YOUR_VERCEL_URL
-NEXT_PUBLIC_BACKEND_URL=https://YOUR_RAILWAY_URL/api
-BACKEND_INTERNAL_URL=https://YOUR_RAILWAY_URL/api
+FRONTEND_URL=https://YOUR.vercel.app
+MAIN_URL=https://YOUR.vercel.app
+```
+
+You still need Railway URL for `NEXT_PUBLIC_BACKEND_URL` — redeploy frontend after Railway is live.
+
+---
+
+## 2. Railway — backend (this fork, no Temporal)
+
+1. https://railway.app → **New Project** → **Deploy from GitHub** → same repo  
+2. Railway reads `railway.toml` (Nixpacks, builds backend only)  
+3. Add **all** vars from `.env.railway.example`  
+4. Important:
+
+```env
+DATABASE_URL=           # Neon URI with ?sslmode=require
+REDIS_URL=              # rediss://... from redis.io
+DISABLE_TEMPORAL=true
+SKIP_AUTH=true
+NEXT_PUBLIC_SKIP_AUTH=true
+NOT_SECURED=true
+FRONTEND_URL=https://YOUR.vercel.app
+MAIN_URL=https://YOUR.vercel.app
+NEXT_PUBLIC_BACKEND_URL=https://YOUR.up.railway.app
+JWT_SECRET=             # same long secret as Vercel
 IS_GENERAL=true
-JWT_SECRET=same-as-railway
+RUN_CRON=false
 ```
 
-4. Then on Railway update:
-
-```env
-FRONTEND_URL=https://YOUR_VERCEL_URL
-MAIN_URL=https://YOUR_VERCEL_URL
-```
+5. Generate a public domain for the service (Settings → Networking)  
+6. Redeploy  
 
 ---
 
-## D. After first login
+## 3. Wire the two together
 
-Set on Railway:
+On **Vercel**, set:
 
 ```env
-DISABLE_REGISTRATION=true
+NEXT_PUBLIC_BACKEND_URL=https://YOUR.up.railway.app
+BACKEND_INTERNAL_URL=https://YOUR.up.railway.app
+FRONTEND_URL=https://YOUR.vercel.app
+MAIN_URL=https://YOUR.vercel.app
 ```
+
+Redeploy Vercel (required — `NEXT_PUBLIC_*` is baked in at build time).
 
 ---
 
-## What you do NOT need on your PC
+## 4. First-time DB
 
-- postiz-postgres
-- postiz-redis
-- temporal / temporal-postgresql / temporal-elasticsearch / temporal-ui
+Railway start runs `prisma-db-push` against Neon automatically.
 
-Those are replaced by Neon, Upstash, and Temporal Cloud.
+Open the Vercel URL → `/launches` (auth skipped).  
+API calls go to Railway. If Neon is empty and `SKIP_AUTH` needs a user later, register once with `SKIP_AUTH=false`, then turn it back on — or keep guest UI until backend user exists.
+
+---
+
+## Checklist
+
+| Item | Where |
+|---|---|
+| Neon `DATABASE_URL` | Railway |
+| Redis `REDIS_URL` | Railway |
+| `DISABLE_TEMPORAL=true` | Railway |
+| `SKIP_AUTH` / `NEXT_PUBLIC_SKIP_AUTH` | Vercel + Railway |
+| `FRONTEND_URL` / `MAIN_URL` | both = Vercel URL |
+| `NEXT_PUBLIC_BACKEND_URL` | both = Railway URL |
+| Same `JWT_SECRET` | both |
+
+---
+
+## Not ready / later
+
+- Temporal / scheduled posts  
+- Your custom auth (turn `SKIP_AUTH=false` when ready)  
+- Social provider API keys  
+- Cloudflare R2 (optional; local storage is fine on Railway `/tmp` for testing only — use a volume or R2 for real uploads)

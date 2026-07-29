@@ -10,9 +10,24 @@ import {
 } from '@gitroom/react/translation/i18n.config';
 acceptLanguage.languages(languages);
 
+function homePath() {
+  return process.env.IS_GENERAL === 'true' ||
+    process.env.NEXT_PUBLIC_SKIP_AUTH === 'true'
+    ? '/launches'
+    : '/analytics';
+}
+
+function isSkipAuth() {
+  return (
+    process.env.SKIP_AUTH === 'true' ||
+    process.env.NEXT_PUBLIC_SKIP_AUTH === 'true'
+  );
+}
+
 // This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
   const nextUrl = request.nextUrl;
+  const skipAuth = isSkipAuth();
   const authCookie =
     request.cookies.get('auth') ||
     request.headers.get('auth') ||
@@ -37,6 +52,14 @@ export async function proxy(request: NextRequest) {
 
   if (lng) {
     topResponse.headers.set(cookieName, lng);
+  }
+
+  // Public mode: keep proxy for i18n/cookies, but never force /auth.
+  if (skipAuth) {
+    if (nextUrl.pathname === '/' || nextUrl.pathname.startsWith('/auth')) {
+      return NextResponse.redirect(new URL(homePath(), nextUrl.href));
+    }
+    return topResponse;
   }
 
   if (nextUrl.pathname.startsWith('/modal/') && !authCookie) {
@@ -158,12 +181,7 @@ export async function proxy(request: NextRequest) {
       return redirect;
     }
     if (nextUrl.pathname === '/') {
-      return NextResponse.redirect(
-        new URL(
-          !!process.env.IS_GENERAL ? '/launches' : `/analytics`,
-          nextUrl.href
-        )
-      );
+      return NextResponse.redirect(new URL(homePath(), nextUrl.href));
     }
 
     return topResponse;

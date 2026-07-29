@@ -6,6 +6,9 @@ export class InfiniteWorkflowRegister implements OnModuleInit {
   constructor(private _temporalService: TemporalService) {}
 
   async onModuleInit(): Promise<void> {
+    if (process.env.DISABLE_TEMPORAL === 'true') {
+      return;
+    }
     if (!!process.env.RUN_CRON) {
       try {
         await this._temporalService.client

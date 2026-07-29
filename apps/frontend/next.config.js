@@ -1,10 +1,29 @@
 // @ts-check
 import { withSentryConfig } from '@sentry/nextjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Prevent Turbopack from using a random lockfile higher up (was causing /launches 404)
+  turbopack: {
+    root: path.join(__dirname, '../..'),
+  },
   experimental: {
     proxyTimeout: 90_000,
+  },
+  // Expose to proxy/middleware (dotenv from monorepo root + .env.local)
+  env: {
+    SKIP_AUTH: process.env.SKIP_AUTH || process.env.NEXT_PUBLIC_SKIP_AUTH || '',
+    NEXT_PUBLIC_SKIP_AUTH:
+      process.env.NEXT_PUBLIC_SKIP_AUTH || process.env.SKIP_AUTH || '',
+    IS_GENERAL: process.env.IS_GENERAL || 'true',
+    NOT_SECURED: process.env.NOT_SECURED || '',
+    FRONTEND_URL: process.env.FRONTEND_URL || '',
+    DISABLE_REGISTRATION: process.env.DISABLE_REGISTRATION || '',
+    POSTIZ_GENERIC_OAUTH: process.env.POSTIZ_GENERIC_OAUTH || '',
   },
   // Document-Policy header for browser profiling
   async headers() {
@@ -35,7 +54,26 @@ const nextConfig = {
     return config;
   },
   async redirects() {
+    const skipAuth =
+      process.env.SKIP_AUTH === 'true' ||
+      process.env.NEXT_PUBLIC_SKIP_AUTH === 'true';
+    const home = process.env.IS_GENERAL === 'true' ? '/launches' : '/analytics';
+
     return [
+      ...(skipAuth
+        ? [
+            {
+              source: '/auth',
+              destination: home,
+              permanent: false,
+            },
+            {
+              source: '/auth/:path*',
+              destination: home,
+              permanent: false,
+            },
+          ]
+        : []),
       {
         source: '/api/uploads/:path*',
         destination:

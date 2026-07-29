@@ -49,22 +49,54 @@ const jakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
 });
 
+const guestUser = {
+  id: 'guest',
+  email: 'guest@local',
+  name: 'Guest',
+  orgId: 'guest-org',
+  tier: 'FREE' as const,
+  role: 'SUPERADMIN' as const,
+  publicApi: '',
+  totalChannels: 0,
+  admin: true,
+  isLifetime: false,
+  impersonate: false,
+  allowTrial: false,
+  isTrailing: false,
+  streakSince: null,
+};
+
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const fetch = useFetch();
+  const skipAuth =
+    process.env.NEXT_PUBLIC_SKIP_AUTH === 'true' ||
+    process.env.SKIP_AUTH === 'true';
 
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
   // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
   const searchParams = useSearchParams();
-  const load = useCallback(async (path: string) => {
-    return await (await fetch(path)).json();
-  }, []);
+  const load = useCallback(
+    async (path: string) => {
+      try {
+        const response = await fetch(path);
+        if (!response.ok) {
+          return skipAuth ? guestUser : null;
+        }
+        return await response.json();
+      } catch {
+        return skipAuth ? guestUser : null;
+      }
+    },
+    [fetch, skipAuth]
+  );
   const { data: user, mutate } = useSWR('/user/self', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     revalidateIfStale: false,
     refreshWhenOffline: false,
     refreshWhenHidden: false,
+    fallbackData: skipAuth ? guestUser : undefined,
   });
 
   if (!user) return null;

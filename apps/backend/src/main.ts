@@ -4,8 +4,13 @@ import compression from 'compression';
 
 import { loadSwagger } from '@gitroom/helpers/swagger/load.swagger';
 import { json } from 'express';
-import { Runtime } from '@temporalio/worker';
-Runtime.install({ shutdownSignals: [] });
+
+// Temporal worker runtime — skip when DISABLE_TEMPORAL=true
+if (process.env.DISABLE_TEMPORAL !== 'true') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Runtime } = require('@temporalio/worker');
+  Runtime.install({ shutdownSignals: [] });
+}
 
 process.env.TZ = 'UTC';
 
